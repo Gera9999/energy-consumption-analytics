@@ -170,48 +170,45 @@ def build_dashboard_figure(
         cols=2,
         vertical_spacing=0.12,
         horizontal_spacing=0.08,
-        # Give tables more breathing room (top metrics + bottom insights)
+        # Give text sections breathing room (top metrics + bottom insights)
         row_heights=[0.16, 0.26, 0.22, 0.15, 0.15, 0.14],
         specs=[
-            [{"type": "table", "colspan": 2}, None],
+            [{"type": "xy", "colspan": 2}, None],
             [{"type": "xy", "colspan": 2}, None],
             [{"type": "xy", "colspan": 2}, None],
             [{"type": "xy"}, {"type": "xy"}],
             [{"type": "xy"}, {"type": "xy"}],
-            [{"type": "table", "colspan": 2}, None],
+            [{"type": "xy", "colspan": 2}, None],
         ],
         subplot_titles=subplot_title_texts,
     )
 
-    # Section 1: Key metrics table
-    metrics = [
-        ("Total records", f"{n_total:,}"),
-        ("Average consumption", f"{avg_cons:.3f}"),
-        ("Minimum consumption", f"{min_cons:.3f}"),
-        ("Maximum consumption", f"{max_cons:.3f}"),
-        ("Anomalies detected", f"{n_anoms:,} ({anom_pct:.2f}%)"),
-        ("Time range", f"{time_min:%Y-%m-%d} → {time_max:%Y-%m-%d}"),
+    # Section 1: Key metrics (text block)
+    metrics_lines = [
+        f"Total records: {n_total:,}",
+        f"Average consumption: {_fmt(avg_cons)}",
+        f"Minimum consumption: {_fmt(min_cons)}",
+        f"Maximum consumption: {_fmt(max_cons)}",
+        f"Anomalies detected: {n_anoms:,} ({anom_pct:.2f}%)",
+        f"Time range: {time_min:%Y-%m-%d} → {time_max:%Y-%m-%d}",
     ]
-    fig.add_trace(
-        go.Table(
-            header=dict(
-                values=["Metric", "Value"],
-                align="left",
-                fill_color="rgba(31, 119, 180, 0.12)",
-                height=34,
-                font=dict(size=12),
-            ),
-            cells=dict(
-                values=[[m[0] for m in metrics], [m[1] for m in metrics]],
-                align="left",
-                height=32,
-                font=dict(size=12),
-            ),
-            columnwidth=[0.35, 0.65],
-        ),
+    fig.add_annotation(
         row=1,
         col=1,
+        x=0.01,
+        y=0.95,
+        xref="x domain",
+        yref="y domain",
+        text="<br>".join(metrics_lines),
+        showarrow=False,
+        align="left",
+        font=dict(size=12, color="rgba(0,0,0,0.85)"),
+        bgcolor="rgba(31, 119, 180, 0.08)",
+        bordercolor="rgba(0,0,0,0.12)",
+        borderwidth=1,
     )
+    fig.update_xaxes(visible=False, row=1, col=1)
+    fig.update_yaxes(visible=False, row=1, col=1)
 
     # Section 2: Historical consumption + anomalies
     fig.add_trace(
@@ -402,7 +399,7 @@ def build_dashboard_figure(
             x=[f"{h:02d}" for h in range(24)],
             y=dow_labels,
             colorscale="Blues",
-            colorbar=dict(title="Avg"),
+            showscale=False,
             hovertemplate="Day=%{y}<br>Hour=%{x}:00<br>Avg=%{z:.3f}<extra></extra>",
         ),
         row=5,
@@ -411,29 +408,33 @@ def build_dashboard_figure(
     fig.update_xaxes(title_text="Hour of day", row=5, col=2)
     fig.update_yaxes(title_text="Day of week", row=5, col=2)
 
-    # Section 5: Analytical insights
-    fig.add_trace(
-        go.Table(
-            header=dict(
-                values=["Automatically generated insights"],
-                align="left",
-                fill_color="rgba(31, 119, 180, 0.12)",
-                height=34,
-                font=dict(size=12),
-            ),
-            cells=dict(values=[insights_lines], align="left", height=32, font=dict(size=12)),
-        ),
+    # Section 5: Analytical insights (text block)
+    fig.add_annotation(
         row=6,
         col=1,
+        x=0.01,
+        y=0.95,
+        xref="x domain",
+        yref="y domain",
+        text="<br>".join(insights_lines),
+        showarrow=False,
+        align="left",
+        font=dict(size=12, color="rgba(0,0,0,0.85)"),
+        bgcolor="rgba(31, 119, 180, 0.08)",
+        bordercolor="rgba(0,0,0,0.12)",
+        borderwidth=1,
     )
+    fig.update_xaxes(visible=False, row=6, col=1)
+    fig.update_yaxes(visible=False, row=6, col=1)
 
     # Global styling
     fig.update_layout(
         template="plotly_white",
         title=dict(text="Energy Consumption Analytics Dashboard", x=0.5, y=0.985),
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.06, xanchor="left", x=0),
-        margin=dict(l=70, r=35, t=150, b=70),
+        # Put legend at the bottom to avoid overlap with the main title.
+        legend=dict(orientation="h", yanchor="top", y=-0.05, xanchor="center", x=0.5, font=dict(size=10)),
+        margin=dict(l=70, r=35, t=150, b=120),
         height=1900,
     )
 
