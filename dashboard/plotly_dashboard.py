@@ -170,7 +170,8 @@ def build_dashboard_figure(
         cols=2,
         vertical_spacing=0.12,
         horizontal_spacing=0.08,
-        row_heights=[0.13, 0.28, 0.24, 0.16, 0.16, 0.10],
+        # Give tables more breathing room (top metrics + bottom insights)
+        row_heights=[0.16, 0.26, 0.22, 0.15, 0.15, 0.14],
         specs=[
             [{"type": "table", "colspan": 2}, None],
             [{"type": "xy", "colspan": 2}, None],
@@ -193,8 +194,20 @@ def build_dashboard_figure(
     ]
     fig.add_trace(
         go.Table(
-            header=dict(values=["Metric", "Value"], align="left", fill_color="rgba(31, 119, 180, 0.12)"),
-            cells=dict(values=[[m[0] for m in metrics], [m[1] for m in metrics]], align="left", height=26),
+            header=dict(
+                values=["Metric", "Value"],
+                align="left",
+                fill_color="rgba(31, 119, 180, 0.12)",
+                height=34,
+                font=dict(size=12),
+            ),
+            cells=dict(
+                values=[[m[0] for m in metrics], [m[1] for m in metrics]],
+                align="left",
+                height=32,
+                font=dict(size=12),
+            ),
+            columnwidth=[0.35, 0.65],
         ),
         row=1,
         col=1,
@@ -401,8 +414,14 @@ def build_dashboard_figure(
     # Section 5: Analytical insights
     fig.add_trace(
         go.Table(
-            header=dict(values=["Automatically generated insights"], align="left", fill_color="rgba(31, 119, 180, 0.12)"),
-            cells=dict(values=[insights_lines], align="left", height=26),
+            header=dict(
+                values=["Automatically generated insights"],
+                align="left",
+                fill_color="rgba(31, 119, 180, 0.12)",
+                height=34,
+                font=dict(size=12),
+            ),
+            cells=dict(values=[insights_lines], align="left", height=32, font=dict(size=12)),
         ),
         row=6,
         col=1,
@@ -415,7 +434,7 @@ def build_dashboard_figure(
         hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.06, xanchor="left", x=0),
         margin=dict(l=70, r=35, t=150, b=70),
-        height=1750,
+        height=1900,
     )
 
     # Make subplot titles and axis labels readable
