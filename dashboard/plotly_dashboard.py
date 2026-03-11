@@ -230,6 +230,30 @@ def build_dashboard_figure(
         )
 
     # Section 3: Forecast
+    # Shade the future region (forecast horizon) so it doesn't look like the historical panel.
+    if not pd.isna(recent_min) and not pd.isna(recent_max):
+        band_min = recent_min
+        band_max = recent_max
+        if not fc_future.empty:
+            band_min = min(band_min, _safe_float(fc_future["yhat_lower"].min()))
+            band_max = max(band_max, _safe_float(fc_future["yhat_upper"].max()))
+
+        if not pd.isna(band_min) and not pd.isna(band_max):
+            fig.add_trace(
+                go.Scatter(
+                    x=[last_ts, forecast_horizon_end, forecast_horizon_end, last_ts],
+                    y=[band_min, band_min, band_max, band_max],
+                    mode="lines",
+                    line=dict(width=0),
+                    fill="toself",
+                    fillcolor="rgba(255, 127, 14, 0.06)",
+                    showlegend=False,
+                    hoverinfo="skip",
+                ),
+                row=3,
+                col=1,
+            )
+
     if not df_recent.empty:
         fig.add_trace(
             go.Scatter(
@@ -275,9 +299,10 @@ def build_dashboard_figure(
             go.Scatter(
                 x=fc_future["ds"],
                 y=fc_future["yhat"],
-                mode="lines",
+                mode="lines+markers",
                 name="Forecast",
                 line=dict(width=3, color="#FF7F0E"),
+                marker=dict(size=4, color="#FF7F0E", opacity=0.8),
                 hovertemplate="%{x|%Y-%m-%d %H:%M}<br>Forecast=%{y:.3f}<extra></extra>",
             ),
             row=3,
@@ -299,6 +324,22 @@ def build_dashboard_figure(
                 ),
                 row=3,
                 col=1,
+            )
+
+            fig.add_annotation(
+                row=3,
+                col=1,
+                x=last_ts,
+                y=panel_max,
+                xref="x",
+                yref="y",
+                text="Forecast starts",
+                showarrow=False,
+                yshift=12,
+                font=dict(size=10, color="rgba(0,0,0,0.65)"),
+                bgcolor="rgba(255,255,255,0.7)",
+                bordercolor="rgba(0,0,0,0.12)",
+                borderwidth=1,
             )
 
     # Section 4: Behavior analytics
@@ -392,10 +433,30 @@ def build_dashboard_figure(
         pass
 
     # Axes labels for the main panels
-    fig.update_yaxes(title_text="Consumption", row=2, col=1)
-    fig.update_xaxes(title_text="Time", row=2, col=1, showticklabels=True, tickformat="%Y-%m-%d")
-    fig.update_yaxes(title_text="Consumption", row=3, col=1)
-    fig.update_xaxes(title_text="Time", row=3, col=1, showticklabels=True, tickformat="%Y-%m-%d")
+    fig.update_yaxes(title_text="Consumption", title_standoff=10, row=2, col=1)
+    fig.update_xaxes(title_text="Time", title_standoff=8, row=2, col=1, showticklabels=True, tickformat="%Y-%m-%d")
+    fig.update_yaxes(title_text="Consumption", title_standoff=10, row=3, col=1)
+    fig.update_xaxes(title_text="Time", title_standoff=8, row=3, col=1, showticklabels=True, tickformat="%Y-%m-%d")
+
+    # Make it easy to read values on hover in the forecast panel
+    fig.update_xaxes(
+        showspikes=True,
+        spikemode="across",
+        spikesnap="cursor",
+        spikecolor="rgba(0,0,0,0.35)",
+        spikethickness=1,
+        row=3,
+        col=1,
+    )
+    fig.update_yaxes(
+        showspikes=True,
+        spikemode="across",
+        spikesnap="cursor",
+        spikecolor="rgba(0,0,0,0.20)",
+        spikethickness=1,
+        row=3,
+        col=1,
+    )
 
     # Range slider + selector on historical panel
     fig.update_xaxes(
