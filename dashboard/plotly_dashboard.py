@@ -62,6 +62,8 @@ def build_dashboard_figure(
     recent_start = last_ts - pd.Timedelta(days=14)
     df_recent = df[df[datetime_col] >= recent_start].copy()
 
+    forecast_horizon_end = last_ts + pd.Timedelta(hours=24)
+
     # --- Key metrics
     n_total = int(len(df))
     avg_cons = _safe_float(df[target_col].mean())
@@ -152,12 +154,23 @@ def build_dashboard_figure(
     insights_lines = [line for line in insights_lines if line]
 
     # --- Layout
+    subplot_title_texts = (
+        "Key Metrics Summary",
+        "Historical Consumption with Anomalies",
+        "Short-term Forecast (Next 24 Hours)",
+        "Avg Consumption by Hour of Day",
+        "Avg Consumption by Day of Week",
+        "Consumption Distribution",
+        "Heatmap: Hour vs Day of Week",
+        "Analytical Insights",
+    )
+
     fig = make_subplots(
         rows=6,
         cols=2,
-        vertical_spacing=0.10,
+        vertical_spacing=0.12,
         horizontal_spacing=0.08,
-        row_heights=[0.13, 0.27, 0.22, 0.17, 0.17, 0.10],
+        row_heights=[0.13, 0.28, 0.24, 0.16, 0.16, 0.10],
         specs=[
             [{"type": "table", "colspan": 2}, None],
             [{"type": "xy", "colspan": 2}, None],
@@ -166,16 +179,7 @@ def build_dashboard_figure(
             [{"type": "xy"}, {"type": "xy"}],
             [{"type": "table", "colspan": 2}, None],
         ],
-        subplot_titles=(
-            "Key Metrics Summary",
-            "Historical Consumption with Anomalies",
-            "Short-term Forecast (Next 24 Hours)",
-            "Avg Consumption by Hour of Day",
-            "Avg Consumption by Day of Week",
-            "Consumption Distribution",
-            "Heatmap: Hour vs Day of Week",
-            "Analytical Insights",
-        ),
+        subplot_titles=subplot_title_texts,
     )
 
     # Section 1: Key metrics table
@@ -233,7 +237,7 @@ def build_dashboard_figure(
                 y=df_recent[target_col],
                 mode="lines",
                 name="Historical (recent 14d)",
-                line=dict(width=2, color="rgba(31, 119, 180, 0.55)"),
+                line=dict(width=2, color="rgba(0, 0, 0, 0.35)"),
                 hovertemplate="%{x|%Y-%m-%d %H:%M}<br>Consumption=%{y:.3f}<extra></extra>",
             ),
             row=3,
@@ -260,7 +264,7 @@ def build_dashboard_figure(
                 mode="lines",
                 line=dict(width=0),
                 fill="tonexty",
-                fillcolor="rgba(31, 119, 180, 0.18)",
+                fillcolor="rgba(255, 127, 14, 0.18)",
                 name="Forecast interval",
                 hoverinfo="skip",
             ),
@@ -273,12 +277,29 @@ def build_dashboard_figure(
                 y=fc_future["yhat"],
                 mode="lines",
                 name="Forecast",
-                line=dict(width=2, color="#1F77B4"),
+                line=dict(width=3, color="#FF7F0E"),
                 hovertemplate="%{x|%Y-%m-%d %H:%M}<br>Forecast=%{y:.3f}<extra></extra>",
             ),
             row=3,
             col=1,
         )
+
+        # Explicit split marker between history and forecast (avoid add_vline due to table subplots)
+        panel_min = min(recent_min, _safe_float(fc_future["yhat_lower"].min()))
+        panel_max = max(recent_max, _safe_float(fc_future["yhat_upper"].max()))
+        if not pd.isna(panel_min) and not pd.isna(panel_max):
+            fig.add_trace(
+                go.Scatter(
+                    x=[last_ts, last_ts],
+                    y=[panel_min, panel_max],
+                    mode="lines",
+                    line=dict(width=1, dash="dot", color="rgba(0,0,0,0.5)"),
+                    showlegend=False,
+                    hoverinfo="skip",
+                ),
+                row=3,
+                col=1,
+            )
 
     # Section 4: Behavior analytics
     fig.add_trace(
@@ -349,10 +370,10 @@ def build_dashboard_figure(
     # Global styling
     fig.update_layout(
         template="plotly_white",
-        title=dict(text="Energy Consumption Analytics Dashboard", x=0.5),
+        title=dict(text="Energy Consumption Analytics Dashboard", x=0.5, y=0.985),
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-        margin=dict(l=70, r=35, t=110, b=70),
+        legend=dict(orientation="h", yanchor="bottom", y=1.06, xanchor="left", x=0),
+        margin=dict(l=70, r=35, t=150, b=70),
         height=1750,
     )
 
@@ -360,6 +381,15 @@ def build_dashboard_figure(
     fig.update_annotations(font=dict(size=12))
     fig.update_xaxes(automargin=True, tickfont=dict(size=10))
     fig.update_yaxes(automargin=True, tickfont=dict(size=10))
+
+    # Lift subplot titles a bit so they don't overlap with traces/legend
+    try:
+        for ann in list(fig.layout.annotations or []):
+            if getattr(ann, "xref", None) == "paper" and getattr(ann, "yref", None) == "paper":
+                if getattr(ann, "text", None) in set(subplot_title_texts):
+                    ann.yshift = 14
+    except Exception:
+        pass
 
     # Axes labels for the main panels
     fig.update_yaxes(title_text="Consumption", row=2, col=1)
@@ -385,9 +415,9 @@ def build_dashboard_figure(
     )
 
     # Focus forecast panel on recent + future
-    if not df_recent.empty:
-        x_end = fc_future["ds"].max() if not fc_future.empty else df_recent[datetime_col].max()
-        fig.update_xaxes(range=[df_recent[datetime_col].min(), x_end], row=3, col=1)
+    x_start = recent_start
+    x_end = fc_future["ds"].max() if not fc_future.empty else forecast_horizon_end
+    fig.update_xaxes(range=[x_start, x_end], row=3, col=1)
 
     # --- Non-invasive KPI annotations per panel
     def _add_panel_kpi(row: int, col: int, lines: list[str]) -> None:
