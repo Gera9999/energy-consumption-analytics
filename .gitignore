@@ -1,0 +1,20 @@
+# Data (keep large/private data out of git by default)
+data/household_power_consumption.csv
+data/raw/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated dashboards
+output/dashboard.html

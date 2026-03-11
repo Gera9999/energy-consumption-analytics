@@ -1,0 +1,6 @@
+pandas
+numpy<2.0
+scikit-learn
+plotly
+prophet==1.1.5
+matplotlib
