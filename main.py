@@ -43,7 +43,10 @@ def main() -> None:
     else:
         csv_path = default_dataset if default_dataset.exists() else demo_dataset
 
-    output_html = Path(args.output) if args.output else (repo_root / "output" / "dashboard.html")
+    if args.output:
+        output_html = Path(args.output)
+    else:
+        output_html = repo_root / "output" / ("dashboard_demo.html" if args.demo else "dashboard.html")
 
     result = run_pipeline(PipelineConfig(csv_path=csv_path))
     saved_path = save_dashboard_html(
