@@ -129,6 +129,14 @@ Then open:
 
 - http://localhost:8000/output/dashboard_demo.html
 
+## Live Dashboard link (GitHub Pages)
+
+Once GitHub Pages is enabled for this repository, you can view the pre-generated demo dashboard here:
+
+- https://gera9999.github.io/energy-consumption-analytics/output/dashboard_demo.html
+
+To enable it: GitHub repo → **Settings** → **Pages** → **Build and deployment** → Source: **Deploy from a branch** → Branch: `main` (root).
+
 ## Example Outputs
 
 The generated dashboard includes:
